@@ -16,7 +16,14 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 # Local LLM served by Ollama (https://ollama.com). Change via env var.
-LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2:3b")
+LLM_CONTEXT_TOKENS = int(os.getenv("LLM_CONTEXT_TOKENS", "2048"))
+LLM_OUTPUT_TOKENS = int(os.getenv("LLM_OUTPUT_TOKENS", "256"))
+if LLM_CONTEXT_TOKENS <= 0 or not 0 < LLM_OUTPUT_TOKENS < LLM_CONTEXT_TOKENS:
+    raise ValueError(
+        "LLM_CONTEXT_TOKENS must be positive and LLM_OUTPUT_TOKENS must be "
+        "positive and smaller than LLM_CONTEXT_TOKENS."
+    )
 TOP_K = int(os.getenv("TOP_K", "6"))
 
 

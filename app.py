@@ -2,7 +2,7 @@
 import streamlit as st
 
 from ingest import ingest_urls
-from rag import answer_stream
+from rag import ContextBudgetError, DecompositionError, answer_stream
 from store import LLM_MODEL, TOP_K, get_collection
 
 st.set_page_config(page_title="Football Strategy RAG", page_icon="🏈")
@@ -53,19 +53,25 @@ if question := st.chat_input("Ask about football strategy..."):
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        hits, stream = answer_stream(question, history, k)
-        answer = st.write_stream(stream)
+        try:
+            with st.spinner("Searching sources..."):
+                hits, stream = answer_stream(question, history, k)
+        except (ContextBudgetError, DecompositionError) as e:
+            st.session_state.messages.pop()
+            st.error(str(e))
+        else:
+            answer = st.write_stream(stream)
 
-        sources_md = "\n\n".join(
-            f"**[{i}] [{h['meta']['title']}]({h['meta']['url']})** "
-            f"· {h['meta']['site']} · similarity {1 - h['distance']:.2f}\n\n"
-            f"> {h['text'][:300].replace(chr(10), ' ')}..."
-            for i, h in enumerate(hits, 1)
-        )
-        if sources_md:
-            with st.expander("Sources"):
-                st.markdown(sources_md)
+            sources_md = "\n\n".join(
+                f"**[{i}] [{h['meta']['title']}]({h['meta']['url']})** "
+                f"· {h['meta']['site']} · similarity {1 - h['distance']:.2f}\n\n"
+                f"> {h['text'][:300].replace(chr(10), ' ')}..."
+                for i, h in enumerate(hits, 1)
+            )
+            if sources_md:
+                with st.expander("Sources"):
+                    st.markdown(sources_md)
 
-    st.session_state.messages.append(
-        {"role": "assistant", "content": answer, "sources": sources_md}
-    )
+            st.session_state.messages.append(
+                {"role": "assistant", "content": answer, "sources": sources_md}
+            )
